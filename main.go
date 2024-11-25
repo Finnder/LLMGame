@@ -12,7 +12,7 @@ import (
 
 func main() {
     myApp := app.New()
-    myWindow := myApp.NewWindow("Your Adventure | By: Finn McGuire")
+    myWindow := myApp.NewWindow("Your Adventure")
 
     // Initialize chat system
     chatSystem := chat.NewChatSystem()
@@ -26,17 +26,14 @@ func main() {
         chatSystem.AddMessage("System", "Welcome to Your Adventure! Type your actions to begin...")
     }
 
-    // Set up input handlers
     chatSystem.Input().OnSubmitted = func(_ string) {
         chatSystem.HandleNewMessage()
     }
 
-    // Create send button
     sendButton := widget.NewButton("Send", func() {
         chatSystem.HandleNewMessage()
     })
 
-    // Layout
     content := container.NewVBox(
         chatSystem.ChatBox(),
         chatSystem.Input(),

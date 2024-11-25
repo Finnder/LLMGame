@@ -1,4 +1,3 @@
-// File: lib/chat/chat.go
 package chat
 
 import (
@@ -21,7 +20,6 @@ type ChatSystem struct {
     messages  []ChatMessage
     chatBox   *widget.TextGrid
     input     *widget.Entry
-    aiModel   string
 }
 
 func NewChatSystem() *ChatSystem {
@@ -36,7 +34,6 @@ func NewChatSystem() *ChatSystem {
         messages:  make([]ChatMessage, 0),
         chatBox:   chatBox,
         input:     input,
-        aiModel:   OllamaApi.DefaultModel,
     }
 }
 
@@ -46,6 +43,17 @@ func (cs *ChatSystem) ChatBox() *widget.TextGrid {
 
 func (cs *ChatSystem) Input() *widget.Entry {
     return cs.input
+}
+
+// wrapText splits text into lines with a maximum width.
+func wrapText(input string, maxWidth int) []string {
+	var lines []string
+	for len(input) > maxWidth {
+		lines = append(lines, input[:maxWidth])
+		input = input[maxWidth:]
+	}
+	lines = append(lines, input)
+	return lines
 }
 
 func (cs *ChatSystem) AddMessage(sender, content string) {
@@ -60,11 +68,19 @@ func (cs *ChatSystem) AddMessage(sender, content string) {
 }
 
 func (cs *ChatSystem) updateChatDisplay() {
-    var text strings.Builder
+    var wrappedMessages []string
+
     for _, msg := range cs.messages {
-        text.WriteString(fmt.Sprintf("\n%s: %s", msg.Sender, msg.Content))
+        // Format the sender and content
+        formattedMessage := fmt.Sprintf("%s: %s", msg.Sender, msg.Content)
+        
+        // Wrap the text
+        wrapped := wrapText(formattedMessage, 80)
+        wrappedMessages = append(wrappedMessages, wrapped...)
     }
-    cs.chatBox.SetText(text.String())
+
+    // Update the TextGrid
+    cs.chatBox.SetText(strings.Join(wrappedMessages, "\n"))
     cs.chatBox.Refresh()
 }
 
@@ -74,12 +90,12 @@ func (cs *ChatSystem) generateAIResponse(userInput string) {
 
     prompt := fmt.Sprintf(`You are a Game Master narrating an adventure game. The player just said: "%s"
     
-    Respond in character as the narrator. Set the scene and give the player clear choices.
+    Respond in character as the narrator. Make sure to set the scene. 
     Keep your response under 3 sentences.
     Make it engaging and focused on advancing the story.`, userInput)
 
     // Make the API call
-    response, err := OllamaApi.NewOllamaRequest(cs.aiModel, prompt)
+    response, err := OllamaApi.NewOllamaRequest(prompt)
     if err != nil {
         cs.AddMessage("System", fmt.Sprintf("Error: %v", err))
         return

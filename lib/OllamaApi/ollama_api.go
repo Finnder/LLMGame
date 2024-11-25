@@ -1,13 +1,13 @@
 package OllamaApi
 
 import (
-    "bytes"
-    "encoding/json"
-    "fmt"
-    "net/http"
-    "os/exec"
-    "time"
-    "sync"
+	"bytes"
+	"encoding/json"
+	"fmt"
+	"net/http"
+	"os/exec"
+	"sync"
+	"time"
 )
 
 const ollamaBaseURL = "http://localhost:11434"
@@ -20,6 +20,7 @@ var (
 
 type OllamaResponse struct {
     Model     string  `json:"model"`
+    CreatedAt string  `json:"created_at"`
     Response  string  `json:"response"`
     Done      bool    `json:"done"`
     Error     string  `json:"error,omitempty"`
@@ -28,11 +29,11 @@ type OllamaResponse struct {
 type GenerateRequest struct {
     Model    string `json:"model"`
     Prompt   string `json:"prompt"`
-    Stream   bool   `json:"stream,omitempty"`
+    Stream   bool   `json:"stream"`
 }
 
-func NewOllamaRequest(modelName, prompt string) (string, error) {
-    // Ensure Ollama is running
+func NewOllamaRequest(prompt string) (string, error) {
+
     if !checkOllamaRunning() {
         if err := startOllama(); err != nil {
             return "", fmt.Errorf("failed to start Ollama: %v", err)
@@ -41,7 +42,7 @@ func NewOllamaRequest(modelName, prompt string) (string, error) {
 
     // Prepare the request
     reqBody := GenerateRequest{
-        Model:  modelName,
+        Model:  DefaultModel,
         Prompt: prompt,
         Stream: false,
     }
@@ -53,7 +54,7 @@ func NewOllamaRequest(modelName, prompt string) (string, error) {
 
     // Make the API call with increased timeout
     client := http.Client{
-        Timeout: 60 * time.Second,  // Increased timeout
+        Timeout: 30 * time.Second, 
     }
 
     resp, err := client.Post(
@@ -64,8 +65,10 @@ func NewOllamaRequest(modelName, prompt string) (string, error) {
     if err != nil {
         return "", fmt.Errorf("Ollama API Error: %v", err)
     }
+
     defer resp.Body.Close()
 
+    
     // Read and parse response
     var response OllamaResponse
     if err := json.NewDecoder(resp.Body).Decode(&response); err != nil {
@@ -76,11 +79,7 @@ func NewOllamaRequest(modelName, prompt string) (string, error) {
         return "", fmt.Errorf("API error: %s", response.Error)
     }
 
-    // Return the response text
-    if response.Response == "" {
-        return "", fmt.Errorf("empty response from API")
-    }
-
+    println(response.Response)
     return response.Response, nil
 }
 
