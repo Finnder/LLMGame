@@ -62,7 +62,7 @@ func NewOllamaRequest(modelName, prompt string) (string, error) {
         bytes.NewBuffer(payloadBytes),
     )
     if err != nil {
-        return "", fmt.Errorf("error sending request to Ollama API: %v", err)
+        return "", fmt.Errorf("Ollama API Error: %v", err)
     }
     defer resp.Body.Close()
 
