@@ -1,65 +1,49 @@
 package main
 
 import (
-    "strings"
-	"fyne.io/fyne/v2"
-	"fyne.io/fyne/v2/app"
-	"fyne.io/fyne/v2/container"
-	"fyne.io/fyne/v2/widget"
     "fmt"
-    "example.com/llm-gamme/lib"
+    "fyne.io/fyne/v2"
+    "fyne.io/fyne/v2/app"
+    "fyne.io/fyne/v2/container"
+    "fyne.io/fyne/v2/widget"
+    "example.com/llm-gamme/lib/chat"
+    "example.com/llm-gamme/lib/OllamaApi"
 )
 
-// ChatMessage represents a map to store chat messages
-type ChatMessage map[string]string
-
 func main() {
-	myApp := app.New()
+    myApp := app.New()
     myWindow := myApp.NewWindow("Your Adventure | By: Finn McGuire")
 
-	messages := make(ChatMessage)
+    // Initialize chat system
+    chatSystem := chat.NewChatSystem()
 
-	label := widget.NewLabel("Your Adventure | By: Finn McGuire")
-
-	input := widget.NewEntry()
-	input.SetPlaceHolder("Enter your message...")
-
-	chatBox := widget.NewMultiLineEntry()
-	chatBox.Wrapping = fyne.TextWrapWord
-	chatBox.SetMinRowsVisible(15)
-	chatBox.Disable()
-
-	handleSubmit := func() {
-        formattedInput := strings.TrimSpace(input.Text)
-		if formattedInput != "" {
-			messages["You"] = input.Text
-			chatBox.SetText(chatBox.Text + "\nYou: " + input.Text)
-			input.SetText("")
-		} else {
-			input.SetText("")
-        }
-	}
-
-	input.OnSubmitted = func(_ string) {
-		handleSubmit()
-	}
-
-    err := lib.OllamaSetupAndRun()
+    // Set up Ollama
+    err := OllamaApi.OllamaSetupAndRun()
     if err != nil {
-        fmt.Println(err)
+        fmt.Printf("Error setting up Ollama: %v\n", err)
+        chatSystem.AddMessage("System", "Warning: AI features may be limited due to setup error.")
+    } else {
+        chatSystem.AddMessage("System", "Welcome to Your Adventure! Type your actions to begin...")
     }
 
-	content := container.NewVBox(
-		label,
-		chatBox,
-		input,
-		widget.NewButton("Send", func() {
-			handleSubmit()
-		}),
-	)
+    // Set up input handlers
+    chatSystem.Input().OnSubmitted = func(_ string) {
+        chatSystem.HandleNewMessage()
+    }
 
-	myWindow.SetContent(content)
-	myWindow.Resize(fyne.NewSize(600, 400))
-	myWindow.ShowAndRun()
+    // Create send button
+    sendButton := widget.NewButton("Send", func() {
+        chatSystem.HandleNewMessage()
+    })
+
+    // Layout
+    content := container.NewVBox(
+        chatSystem.ChatBox(),
+        chatSystem.Input(),
+        sendButton,
+    )
+
+    myWindow.SetContent(content)
+    myWindow.Resize(fyne.NewSize(600, 400))
+    myWindow.ShowAndRun()
 }
-
